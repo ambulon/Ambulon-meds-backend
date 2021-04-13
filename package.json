@@ -1,0 +1,33 @@
+{
+  "name": "ambulon-meds",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nimishb2000/Ambulon-meds.git"
+  },
+  "author": "Nimish Bansal",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nimishb2000/Ambulon-meds/issues"
+  },
+  "homepage": "https://github.com/nimishb2000/Ambulon-meds#readme",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "express-validator": "^6.10.0",
+    "helmet": "^4.4.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongodb": "^3.6.6",
+    "mongoose": "^5.12.3",
+    "multer": "^1.4.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
