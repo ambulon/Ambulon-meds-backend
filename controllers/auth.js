@@ -15,6 +15,7 @@ exports.postAddUser = async (req, res, next) => {
     const f_id = req.body.f_id;
     const name = req.body.name;
     const age = req.body.age;
+    const image = req.body.imageUrl;
     const email = req.body.email;
     let user = await User.findOne({ f_id }).exec().catch(err => next(err));
     if (user) {
@@ -32,6 +33,7 @@ exports.postAddUser = async (req, res, next) => {
         f_id,
         name,
         age,
+        image,
         email
     });
     user
