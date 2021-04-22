@@ -29,18 +29,28 @@ exports.postAddUser = async (req, res, next) => {
         err.status = 400;
         return next(err);
     }
-    user = new User({
+    const new_user = new User({
         f_id,
         name,
+        image,
         age,
         image,
         email
     });
-    user
+    user = await new_user.save().catch(err => next(err));
+    const token = jwt.sign({
+        id: user._id,
+        f_id: user.f_id,
+    }, tokenSecret);
+    const insert_token = new Token({
+        token,
+        userId: user._id
+    });
+    insert_token
         .save()
         .then(() => {
             res.status(200).json({
-                message: 'user added'
+                token
             });
         })
         .catch(err => next(err));

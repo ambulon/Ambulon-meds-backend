@@ -7,6 +7,39 @@ const Medicine = require('../models/medicine');
 
 const { tokenSecret } = require('../util/config');
 
+exports.getDetails = (req, res, next) => {
+    let token = req.header['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        res.status(200).json({
+            user
+        });
+    });
+};
+
 exports.postAddtoSeach = (req, res, next) => {
     let token = req.header['authorization'];
     if (!token) {
