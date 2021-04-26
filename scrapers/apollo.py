@@ -1,15 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
+import sys
 
-name = "combiflam"
+name = sys.argv[1]
 url = f"https://www.apollopharmacy.in/tsearch?q={name}"
 
 options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 options.add_argument('--incognito')
 options.add_argument('--headless')
-driver = webdriver.Chrome("../util/chromedriver", options=options)
+driver = webdriver.Chrome("./util/chromedriver", options=options)
 
 driver.get(url)
 page = driver.page_source

@@ -1,18 +1,38 @@
+const { spawn } = require('child_process');
+
 const express = require('express');
-const bodyParser = require('body-parser');
+const toJson = require('body-parser').json;
 const helmet = require('helmet');
 const mongoose = require('mongoose');
 
 const authRoute = require('./routes/auth');
+const userRoute = require('./routes/user');
 
 const port = process.env.PORT || 3000;
 const mongoURI = require('./util/config').mongoURI;
 
 const app = express();
 
+const getPrices = (req, res, next) => {
+    const name = req.query.name;
+    const process = spawn('python', ['./scrapers/netmeds.py', name]);
+    let price;
+    process.stdout.on('data', data => {
+        price = data.toString();
+        price = price.slice(0, 5);
+        price = parseFloat(price);
+    });
+    process.on('close', code => {
+        console.log(`process exit with code ${code}`);
+        res.json({
+            price
+        });
+    });
+};
+
 app.use(helmet());
 
-app.use(bodyParser.json());
+app.use(toJson());
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,6 +42,10 @@ app.use((req, res, next) => {
 });
 
 app.use(authRoute);
+
+app.get('/scrape', getPrices);
+
+app.use('/user', userRoute);
 
 app.use((error, req, res, next) => {
     const statusCode = error.status || 500;

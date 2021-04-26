@@ -8,7 +8,7 @@ const Medicine = require('../models/medicine');
 const { tokenSecret } = require('../util/config');
 
 exports.getDetails = (req, res, next) => {
-    let token = req.header['authorization'];
+    let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
@@ -41,7 +41,7 @@ exports.getDetails = (req, res, next) => {
 };
 
 exports.postAddtoSeach = (req, res, next) => {
-    let token = req.header['authorization'];
+    let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
@@ -80,7 +80,7 @@ exports.postAddtoSeach = (req, res, next) => {
 };
 
 exports.postAddtoWishlist = (req, res, next) => {
-    let token = req.header['authorization'];
+    let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
@@ -118,7 +118,7 @@ exports.postAddtoWishlist = (req, res, next) => {
 };
 
 exports.postRemovefromWishlist = (req, res, next) => {
-    let token = req.header['authorization'];
+    let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
@@ -158,7 +158,7 @@ exports.postRemovefromWishlist = (req, res, next) => {
 };
 
 exports.postClearSearchHistory = (req, res, next) => {
-    let token = req.header['authorization'];
+    let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
