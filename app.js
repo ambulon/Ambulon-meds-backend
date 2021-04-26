@@ -19,12 +19,17 @@ const getPrices = (req, res, next) => {
     let price;
     process.stdout.on('data', data => {
         price = data.toString();
-        price = price.slice(0, 5);
-        price = parseFloat(price);
     });
     process.on('close', code => {
-        console.log(`process exit with code ${code}`);
+        if (code !== 0) {
+            price = -1;
+        }
+        else {
+            price = price.slice(0, 5);
+            price = parseFloat(price);
+        }
         res.json({
+            site: "netmeds",
             price
         });
     });
