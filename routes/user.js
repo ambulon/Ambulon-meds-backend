@@ -15,4 +15,6 @@ router.post('/clear-history', userController.postClearSearchHistory);
 
 router.post('/remove-from-wishlist', userController.postRemovefromWishlist);
 
+router.post('/add-to-cart', userController.postAddtoCart);
+
 module.exports = router;

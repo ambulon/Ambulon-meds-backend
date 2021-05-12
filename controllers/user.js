@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const User = require('../models/user');
 const Token = require('../models/token');
 const Medicine = require('../models/medicine');
+const CartItem = require('../models/cart-item');
 
 const { tokenSecret } = require('../util/config');
 
@@ -188,6 +189,100 @@ exports.postClearSearchHistory = (req, res, next) => {
         await user.save().catch(err => next(err));
         res.status(200).json({
             message: 'added successfully'
+        });
+    });
+};
+
+exports.postAddtoCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const name = req.body.name;
+        const priceList = req.body.priceList;
+        const quantity = req.body.quantity;
+        const new_cartItem = new CartItem({
+            userId,
+            name,
+            priceList,
+            quantity
+        });
+        await new_cartItem.save().catch(err => next(err));
+        res.json({
+            message: 'Added to Cart'
+        });
+    });
+};
+
+exports.getCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const cartItems = await CartItem.find({ userId }).exec().catch(err => next(err));
+        const items = []
+        const totalPrice = { 
+            netmeds: 0,
+            _1mg: 0,
+            apollo: 0
+        };
+        cartItems.foreach(item => {
+            items.push({
+                name: item.name,
+                quantity: item.quantity
+            });
+            const price = item.priceList;
+            totalPrice._1mg += price._1mg;
+            totalPrice.netmeds += price.netmeds;
+            totalPrice.apollo += price.apollo;
+        });
+        res.json({
+            items,
+            totalPrice
         });
     });
 };
