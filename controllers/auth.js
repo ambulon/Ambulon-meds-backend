@@ -39,7 +39,7 @@ exports.postAddUser = async (req, res, next) => {
     });
     user = await new_user.save().catch(err => next(err));
     const token = jwt.sign({
-        id: user._id,
+        userId: user._id,
         f_id: user.f_id,
     }, tokenSecret);
     const insert_token = new Token({
@@ -71,7 +71,7 @@ exports.getToken = async (req, res, next) => {
         return next(err);
     }
     const token = jwt.sign({
-        id: user._id,
+        userId: user._id,
         f_id: user.f_id,
     }, tokenSecret);
     const insert_token = new Token({
@@ -147,7 +147,7 @@ exports.postLogoutAllDevices = (req, res, next) => {
         Token
             .deleteMany({ userId: decoded.id })
             .then(result => {
-                if(result.deletedCount === 0){
+                if (result.deletedCount === 0) {
                     res.status(401).json({
                         message: 'invalid token'
                     });

@@ -214,7 +214,7 @@ exports.postAddtoCart = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -257,7 +257,7 @@ exports.getCart = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -265,24 +265,72 @@ exports.getCart = (req, res, next) => {
         }
         const cartItems = await CartItem.find({ userId }).exec().catch(err => next(err));
         const items = []
-        const totalPrice = { 
+        const totalPrice = {
             netmeds: 0,
             _1mg: 0,
             apollo: 0
         };
-        cartItems.foreach(item => {
-            items.push({
-                name: item.name,
-                quantity: item.quantity
+        if (cartItems.length === 0) {
+            res.json({
+                items,
+                totalPrice
             });
-            const price = item.priceList;
-            totalPrice._1mg += price._1mg;
-            totalPrice.netmeds += price.netmeds;
-            totalPrice.apollo += price.apollo;
-        });
-        res.json({
-            items,
-            totalPrice
-        });
+        }
+        else {
+            cartItems.forEach(item => {
+                items.push({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.priceList
+                });
+                const price = item.priceList;
+                totalPrice._1mg += price._1mg * item.quantity;
+                totalPrice.netmeds += price.netmeds * item.quantity;
+                totalPrice.apollo += price.apollo * item.quantity;
+            });
+            res.json({
+                items,
+                totalPrice
+            });
+        }
+    });
+};
+
+exports.postRemovefromCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const name = req.body.name;
+        CartItem.findOneAndDelete({ name, userId })
+            .then(result => {
+                console.log(result);
+                res.json({
+                    message: 'removed successfully'
+                });
+            })
+            .catch(err => next(err));
     });
 };

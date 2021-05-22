@@ -11,7 +11,7 @@ try:
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--incognito')
     options.add_argument('--headless')
-    driver = webdriver.Chrome("./util/chromedriver", options=options)
+    driver = webdriver.Chrome("../util/chromedriver", options=options)
 
     driver.get(url)
     page = driver.page_source
@@ -22,8 +22,7 @@ try:
     parent_div = hit_list.find('div')
     price = parent_div.find('div').getText()
     index = price.index('₹')
-    price = price[index+1:]
-    price = price[:-3]
+    price = price[index+1:index+6]
     print(price)
 
 except:
