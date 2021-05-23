@@ -48,6 +48,12 @@ exports.postAddtoSeach = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
     token = token.slice(7, token.length);
     jwt.verify(token, tokenSecret, async (err, decoded) => {
         if (err) {
@@ -87,6 +93,12 @@ exports.postAddtoWishlist = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
     token = token.slice(7, token.length);
     jwt.verify(token, tokenSecret, async (err, decoded) => {
         if (err) {
@@ -108,8 +120,93 @@ exports.postAddtoWishlist = (req, res, next) => {
             return next(err);
         }
         const medicine = req.body.medicine;
+        if (!medicine.name) {
+            const err = new Error('medicine name required');
+            err.status = 422;
+            return next(err);
+        }
+        const name = medicine.name;
+        if (!/^[a-z0-9 ]+$/i.test(name)) {
+            const err = new Error('invalid medicine name');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.desc) {
+            const err = new Error('medicine description required');
+            err.status = 422;
+            return next(err);
+        }
+        const desc = medicine.desc;
+        if (!/^[a-z0-9., ]+$/i.test(desc)) {
+            const err = new Error('invalid medicine desc');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.quantity) {
+            const err = new Error('medicine quantity required');
+            err.status = 422;
+            return next(err);
+        }
+        const quantity = medicine.quantity;
+        if (parseInt(quantity) === NaN || quantity <= 0) {
+            const err = new Error('invalid medicine quantity');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.price) {
+            const err = new Error('medicine price required');
+            err.status = 422;
+            return next(err);
+        }
+        const price = medicine.price;
+        if (parseFloat(price) === NaN || price <= 0) {
+            const err = new Error('invalid medicine price');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.photo) {
+            const err = new Error('medicine photo required');
+            err.status = 422;
+            return next(err);
+        }
+        const photo = medicine.photo;
+        if (!/^[a-z0-9 -]+$/i.test(photo)) {
+            const err = new Error('invalid medicine photo');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.vendor) {
+            const err = new Error('medicine vendor required');
+            err.status = 422;
+            return next(err);
+        }
+        const vendor = medicine.vendor;
+        if (!/^[a-z0-9 ]+$/i.test(vendor)) {
+            const err = new Error('invalid medicine vendor');
+            err.status = 422;
+            return next(err);
+        }
+        if (!medicine.url) {
+            const err = new Error('medicine url required');
+            err.status = 422;
+            return next(err);
+        }
+        const url = medicine.url;
+        if (!/^[a-z0-9:/?. ]+$/i.test(url)) {
+            const err = new Error('invalid medicine url');
+            err.status = 422;
+            return next(err);
+        }
         let wishlist = user.wishlist;
-        const new_medicine = new Medicine(medicine);
+        const new_medicine = new Medicine({
+            name,
+            desc,
+            quantity,
+            price,
+            photo,
+            vendor,
+            url
+        });
         const medicineId = await new_medicine.save()._id;
         wishlist.push(medicineId);
         res.status(200).json({
@@ -123,6 +220,12 @@ exports.postRemovefromWishlist = (req, res, next) => {
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
+        return next(err);
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
         return next(err);
     }
     token = token.slice(7, token.length);
@@ -188,50 +291,7 @@ exports.postClearSearchHistory = (req, res, next) => {
         user.searchHistory = [];
         await user.save().catch(err => next(err));
         res.status(200).json({
-            message: 'added successfully'
-        });
-    });
-};
-
-exports.postAddtoCart = (req, res, next) => {
-    let token = req.headers['authorization'];
-    if (!token) {
-        const err = new Error('token not provided');
-        err.status = 401;
-        return next(err);
-    }
-    token = token.slice(7, token.length);
-    jwt.verify(token, tokenSecret, async (err, decoded) => {
-        if (err) {
-            const error = new Error(err);
-            error.status = 401;
-            return next(error);
-        }
-        const userId = decoded.userId;
-        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
-        if (!fetched_token) {
-            const err = new Error('invalid token');
-            err.status = 401;
-            return next(err);
-        }
-        const user = await User.findById(userId).exec().catch(err => next(err));
-        if (!user) {
-            const err = new Error('invalid token');
-            err.status = 401;
-            return next(err);
-        }
-        const name = req.body.name;
-        const priceList = req.body.priceList;
-        const quantity = req.body.quantity;
-        const new_cartItem = new CartItem({
-            userId,
-            name,
-            priceList,
-            quantity
-        });
-        await new_cartItem.save().catch(err => next(err));
-        res.json({
-            message: 'Added to Cart'
+            message: 'history cleared'
         });
     });
 };
@@ -288,11 +348,70 @@ exports.getCart = (req, res, next) => {
     });
 };
 
+exports.postAddtoCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const name = req.body.name;
+        const check = await CartItem.findOne({ name, userId }).exec().catch(err => next(err));
+        if (check) {
+            const err = new Error('item already in cart');
+            err.status = 412;
+            return next(err);
+        }
+        const priceList = req.body.priceList;
+        const quantity = req.body.quantity;
+        const new_cartItem = new CartItem({
+            userId,
+            name,
+            priceList,
+            quantity
+        });
+        await new_cartItem.save().catch(err => next(err));
+        res.json({
+            message: 'Added to Cart'
+        });
+    });
+};
+
 exports.postRemovefromCart = (req, res, next) => {
     let token = req.headers['authorization'];
     if (!token) {
         const err = new Error('token not provided');
         err.status = 401;
+        return next(err);
+    }
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
         return next(err);
     }
     token = token.slice(7, token.length);
@@ -371,6 +490,11 @@ exports.postSyncCart = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
     token = token.slice(7, token.length);
     jwt.verify(token, tokenSecret, async (err, decoded) => {
         if (err) {
@@ -394,7 +518,27 @@ exports.postSyncCart = (req, res, next) => {
         const cart = req.body.cart;
         cart.forEach(async item => {
             const name = item.name;
+            if(!name){
+                const err = new Error('medicine name required');
+                err.status = 422;
+                return next(err);
+            }
+            if(!/^[a-z0-9 ]+$/i.test(name)){
+                const err = new Error('invalid medicine name');
+                err.status = 422;
+                return next(err);
+            }
             const quantity = item.quantity;
+            if(!quantity){
+                const err = new Error('medicine quantity required');
+                err.status = 422;
+                return next(err);
+            }
+            if(parseInt(quantity) === NaN || quantity < 1){
+                const err = new Error('invalid medicine quantity');
+                err.status = 422;
+                return next(err);
+            }
             const cart_item = await CartItem.findOne({ name, userId }).exec().catch(err => next(err));
             cart_item.quantity = quantity;
             await cart_item.save().catch(err => next(err));
