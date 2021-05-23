@@ -29,7 +29,7 @@ exports.getDetails = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -62,7 +62,7 @@ exports.postAddtoSeach = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -101,7 +101,7 @@ exports.postAddtoWishlist = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -139,7 +139,7 @@ exports.postRemovefromWishlist = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -179,7 +179,7 @@ exports.postClearSearchHistory = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const user = await User.findOne({ userId }).exec().catch(err => next(err));
+        const user = await User.findById(userId).exec().catch(err => next(err));
         if (!user) {
             const err = new Error('invalid token');
             err.status = 401;
@@ -270,29 +270,21 @@ exports.getCart = (req, res, next) => {
             _1mg: 0,
             apollo: 0
         };
-        if (cartItems.length === 0) {
-            res.json({
-                items,
-                totalPrice
+        cartItems.forEach(item => {
+            items.push({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.priceList
             });
-        }
-        else {
-            cartItems.forEach(item => {
-                items.push({
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.priceList
-                });
-                const price = item.priceList;
-                totalPrice._1mg += price._1mg * item.quantity;
-                totalPrice.netmeds += price.netmeds * item.quantity;
-                totalPrice.apollo += price.apollo * item.quantity;
-            });
-            res.json({
-                items,
-                totalPrice
-            });
-        }
+            const price = item.priceList;
+            totalPrice._1mg += price._1mg * item.quantity;
+            totalPrice.netmeds += price.netmeds * item.quantity;
+            totalPrice.apollo += price.apollo * item.quantity;
+        });
+        res.json({
+            items,
+            totalPrice
+        });
     });
 };
 
@@ -332,5 +324,83 @@ exports.postRemovefromCart = (req, res, next) => {
                 });
             })
             .catch(err => next(err));
+    });
+};
+
+exports.postClearCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        CartItem.deleteMany({ userId })
+            .then(() => {
+                res.json({
+                    message: 'cart cleared'
+                });
+            })
+            .catch(err => next(err));
+    });
+};
+
+exports.postSyncCart = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const cart = req.body.cart;
+        cart.forEach(async item => {
+            const name = item.name;
+            const quantity = item.quantity;
+            const cart_item = await CartItem.findOne({ name, userId }).exec().catch(err => next(err));
+            cart_item.quantity = quantity;
+            await cart_item.save().catch(err => next(err));
+        });
+        res.json({
+            message: 'sync completed'
+        });
     });
 };

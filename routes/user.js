@@ -21,4 +21,8 @@ router.post('/add-to-cart', userController.postAddtoCart);
 
 router.post('/remove-from-cart', userController.postRemovefromCart);
 
+router.post('/clear-cart', userController.postClearCart);
+
+router.post('/sync-cart', userController.postSyncCart);
+
 module.exports = router;
