@@ -487,3 +487,52 @@ exports.postSyncCart = (req, res, next) => {
         });
     });
 };
+
+exports.getPrice = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const medName = req.params.medName;
+        const char = medName[0].toLowerCase();
+        const Medicine = require(`../models/medicine_${char}`);
+        const med = await Medicine.findOne({ name: medName }).exec().catch(err => next(err));
+        if(!med){
+            const err = new Error('invalid medicine name');
+            err.status = 401;
+            return next(err);
+        }
+        res.json({
+            med,
+            char
+        });
+    });
+};

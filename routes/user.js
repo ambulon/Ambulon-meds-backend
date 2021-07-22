@@ -110,4 +110,6 @@ router.post('/sync-cart',
     userController.postSyncCart
 );
 
+router.get('/get-price/:medName', userController.getPrice);
+
 module.exports = router;
