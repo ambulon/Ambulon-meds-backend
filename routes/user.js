@@ -21,10 +21,12 @@ router.post('/add-to-search',
 );
 
 router.post('/add-to-wishlist',
-    check('medicine')
+    check('medicineId')
+        .isAlphanumeric()
+        .withMessage('invalid medicine id')
         .custom(value => {
             if (value === '') {
-                throw new Error('medicine object required');
+                throw new Error('medicine id required');
             }
             return true;
         }),
@@ -50,12 +52,12 @@ router.get('/get-cart', userController.getCart);
 
 router.post('/add-to-cart',
     [
-        check('name')
+        check('medicineId')
             .matches(/^[a-z0-9 ]+$/i)
-            .withMessage('invalid medicine name')
+            .withMessage('invalid medicine id')
             .custom(value => {
                 if (value === '') {
-                    throw new Error('medicine name required');
+                    throw new Error('medicine id required');
                 }
                 return true;
             }),
@@ -68,18 +70,27 @@ router.post('/add-to-cart',
                     throw new Error('quantity required');
                 }
                 return true;
+            }),
+        check('char')
+            .isAlpha()
+            .withMessage('invalid char value')
+            .custom(value => {
+                if (value === '') {
+                    throw new Error('char value required');
+                }
+                return true;
             })
     ],
     userController.postAddtoCart
 );
 
 router.post('/remove-from-cart',
-    check('name')
+    check('medicineId')
         .matches(/^[a-z0-9 ]+$/i)
-        .withMessage('invalid medicine name')
+        .withMessage('invalid medicine id')
         .custom(value => {
             if (value === '') {
-                throw new Error('medicine name required');
+                throw new Error('medicine id required');
             }
             return true;
         }),
@@ -88,6 +99,15 @@ router.post('/remove-from-cart',
 
 router.post('/clear-cart', userController.postClearCart);
 
-router.post('/sync-cart', userController.postSyncCart);
+router.post('/sync-cart',
+    check('cart')
+        .custom(value => {
+            if (value === '') {
+                throw new Error('cart object required');
+            }
+            return true;
+        }),
+    userController.postSyncCart
+);
 
 module.exports = router;

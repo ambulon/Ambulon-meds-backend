@@ -3,7 +3,6 @@ const { validationResult } = require('express-validator');
 
 const User = require('../models/user');
 const Token = require('../models/token');
-const Medicine = require('../models/medicine');
 const CartItem = require('../models/cart-item');
 
 const { tokenSecret } = require('../util/config');
@@ -119,96 +118,9 @@ exports.postAddtoWishlist = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const medicine = req.body.medicine;
-        if (!medicine.name) {
-            const err = new Error('medicine name required');
-            err.status = 422;
-            return next(err);
-        }
-        const name = medicine.name;
-        if (!/^[a-z0-9 ]+$/i.test(name)) {
-            const err = new Error('invalid medicine name');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.desc) {
-            const err = new Error('medicine description required');
-            err.status = 422;
-            return next(err);
-        }
-        const desc = medicine.desc;
-        if (!/^[a-z0-9., ]+$/i.test(desc)) {
-            const err = new Error('invalid medicine desc');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.quantity) {
-            const err = new Error('medicine quantity required');
-            err.status = 422;
-            return next(err);
-        }
-        const quantity = medicine.quantity;
-        if (parseInt(quantity) === NaN || quantity <= 0) {
-            const err = new Error('invalid medicine quantity');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.price) {
-            const err = new Error('medicine price required');
-            err.status = 422;
-            return next(err);
-        }
-        const price = medicine.price;
-        if (parseFloat(price) === NaN || price <= 0) {
-            const err = new Error('invalid medicine price');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.photo) {
-            const err = new Error('medicine photo required');
-            err.status = 422;
-            return next(err);
-        }
-        const photo = medicine.photo;
-        if (!/^[a-z0-9 -]+$/i.test(photo)) {
-            const err = new Error('invalid medicine photo');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.vendor) {
-            const err = new Error('medicine vendor required');
-            err.status = 422;
-            return next(err);
-        }
-        const vendor = medicine.vendor;
-        if (!/^[a-z0-9 ]+$/i.test(vendor)) {
-            const err = new Error('invalid medicine vendor');
-            err.status = 422;
-            return next(err);
-        }
-        if (!medicine.url) {
-            const err = new Error('medicine url required');
-            err.status = 422;
-            return next(err);
-        }
-        const url = medicine.url;
-        if (!/^[a-z0-9:/?. ]+$/i.test(url)) {
-            const err = new Error('invalid medicine url');
-            err.status = 422;
-            return next(err);
-        }
+        const medId = req.body.medicineId;
         let wishlist = user.wishlist;
-        const new_medicine = new Medicine({
-            name,
-            desc,
-            quantity,
-            price,
-            photo,
-            vendor,
-            url
-        });
-        const medicineId = await new_medicine.save()._id;
-        wishlist.push(medicineId);
+        wishlist.push(medId);
         res.status(200).json({
             message: 'added successfully'
         });
@@ -249,10 +161,8 @@ exports.postRemovefromWishlist = (req, res, next) => {
             return next(err);
         }
         const medicineId = req.body.medicineId;
-        let wishlist = user.wishlist;
-        const new_wishlist = wishlist.filter((value, index, arr) => {
-            return value === medicineId;
-        });
+        const wishlist = user.wishlist;
+        const new_wishlist = wishlist.filter(value => value != medicineId);
         user.wishlist = new_wishlist;
         await user.save().catch(err => next(err));
         res.status(200).json({
@@ -324,7 +234,8 @@ exports.getCart = (req, res, next) => {
             return next(err);
         }
         const cartItems = await CartItem.find({ userId }).exec().catch(err => next(err));
-        const items = []
+        const items = [];
+        const medicines = [];
         const totalPrice = {
             netmeds: 0,
             _1mg: 0,
@@ -333,13 +244,41 @@ exports.getCart = (req, res, next) => {
         cartItems.forEach(item => {
             items.push({
                 name: item.name,
-                quantity: item.quantity,
-                price: item.priceList
+                quantity: item.quantity
             });
-            const price = item.priceList;
-            totalPrice._1mg += price._1mg * item.quantity;
-            totalPrice.netmeds += price.netmeds * item.quantity;
-            totalPrice.apollo += price.apollo * item.quantity;
+            medicines.push({
+                id: item.medicineId,
+                char: item.char
+            });
+        });
+        let i = 0;
+        medicines.forEach(med => {
+            const char = med.char;
+            const id = med.id;
+            const Medicine = require(`../models/medicine_${char}`);
+            const fetched_med = Medicine.findById(id).exec().catch(err => next(err));
+            const priceList = {
+                _1mg: fetched_med._1mg,
+                apollo: fetched_med.apollo,
+                netmeds: fetched_med.netmeds
+            };
+            const item = items[i];
+            const new_item = {
+                name: item.name,
+                quantity: item.quantity,
+                price: priceList
+            };
+            items[i] = new_item;
+            if (priceList._1mg !== -1) {
+                totalPrice._1mg += item.quantity * priceList._1mg;
+            }
+            if (priceList.apollo !== -1) {
+                totalPrice.apollo += item.quantity * priceList.apollo;
+            }
+            if (priceList.netmeds !== -1) {
+                totalPrice.netmeds += item.quantity * priceList.netmeds;
+            }
+            i++;
         });
         res.json({
             items,
@@ -355,6 +294,7 @@ exports.postAddtoCart = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const err = new Error(errors.array()[0].msg);
         err.status = 422;
@@ -380,19 +320,19 @@ exports.postAddtoCart = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const name = req.body.name;
-        const check = await CartItem.findOne({ name, userId }).exec().catch(err => next(err));
+        const medicineId = req.body.medicineId;
+        const check = await CartItem.findOne({ medicineId, userId }).exec().catch(err => next(err));
         if (check) {
             const err = new Error('item already in cart');
             err.status = 412;
             return next(err);
         }
-        const priceList = req.body.priceList;
+        const char = req.body.char;
         const quantity = req.body.quantity;
         const new_cartItem = new CartItem({
             userId,
-            name,
-            priceList,
+            medicineId,
+            char,
             quantity
         });
         await new_cartItem.save().catch(err => next(err));
@@ -409,6 +349,7 @@ exports.postRemovefromCart = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const err = new Error(errors.array()[0].msg);
         err.status = 422;
@@ -434,10 +375,9 @@ exports.postRemovefromCart = (req, res, next) => {
             err.status = 401;
             return next(err);
         }
-        const name = req.body.name;
-        CartItem.findOneAndDelete({ name, userId })
-            .then(result => {
-                console.log(result);
+        const medicineId = req.body.medicineId;
+        CartItem.findOneAndDelete({ medicineId, userId })
+            .then(() => {
                 res.json({
                     message: 'removed successfully'
                 });
@@ -490,6 +430,7 @@ exports.postSyncCart = (req, res, next) => {
         err.status = 401;
         return next(err);
     }
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const err = new Error(errors.array()[0].msg);
         err.status = 422;
@@ -517,31 +458,29 @@ exports.postSyncCart = (req, res, next) => {
         }
         const cart = req.body.cart;
         cart.forEach(async item => {
-            const name = item.name;
-            if(!name){
-                const err = new Error('medicine name required');
+            const medicineId = item.medicineId;
+            if (!medicineId) {
+                const err = new Error('medicine id required');
                 err.status = 422;
                 return next(err);
             }
-            if(!/^[a-z0-9 ]+$/i.test(name)){
-                const err = new Error('invalid medicine name');
+            if (!/^[a-z0-9 ]+$/i.test(medicineId)) {
+                const err = new Error('invalid medicine id');
                 err.status = 422;
                 return next(err);
             }
             const quantity = item.quantity;
-            if(!quantity){
+            if (!quantity) {
                 const err = new Error('medicine quantity required');
                 err.status = 422;
                 return next(err);
             }
-            if(parseInt(quantity) === NaN || quantity < 1){
+            if (parseInt(quantity) === NaN || quantity < 1) {
                 const err = new Error('invalid medicine quantity');
                 err.status = 422;
                 return next(err);
             }
-            const cart_item = await CartItem.findOne({ name, userId }).exec().catch(err => next(err));
-            cart_item.quantity = quantity;
-            await cart_item.save().catch(err => next(err));
+            await CartItem.findOneAndUpdate({ medicineId, userId }, { quantity }).exec().catch(err => next(err));
         });
         res.json({
             message: 'sync completed'
