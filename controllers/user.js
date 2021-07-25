@@ -235,40 +235,29 @@ exports.getCart = (req, res, next) => {
         }
         const cartItems = await CartItem.find({ userId }).exec().catch(err => next(err));
         const items = [];
-        const medicines = [];
         const totalPrice = {
-            netmeds: 0,
             _1mg: 0,
-            apollo: 0
+            apollo: 0,
+            netmeds: 0
         };
-        cartItems.forEach(item => {
-            items.push({
-                name: item.name,
-                quantity: item.quantity
-            });
-            medicines.push({
-                id: item.medicineId,
-                char: item.char
-            });
-        });
-        let i = 0;
-        medicines.forEach(med => {
-            const char = med.char;
-            const id = med.id;
+        for (let i = 0; i < cartItems.length; i++) {
+            const item = cartItems[i];
+            const char = item.char;
+            const id = item.medicineId;
             const Medicine = require(`../models/medicine_${char}`);
-            const fetched_med = Medicine.findById(id).exec().catch(err => next(err));
+            const fetched_med = await Medicine.findById(id).exec().catch(err => next(err));
             const priceList = {
                 _1mg: fetched_med._1mg,
                 apollo: fetched_med.apollo,
                 netmeds: fetched_med.netmeds
             };
-            const item = items[i];
             const new_item = {
-                name: item.name,
+                name: fetched_med.name,
                 quantity: item.quantity,
                 price: priceList
             };
-            items[i] = new_item;
+            items.push(new_item);
+            console.log('check 2');
             if (priceList._1mg !== -1) {
                 totalPrice._1mg += item.quantity * priceList._1mg;
             }
@@ -278,8 +267,8 @@ exports.getCart = (req, res, next) => {
             if (priceList.netmeds !== -1) {
                 totalPrice.netmeds += item.quantity * priceList.netmeds;
             }
-            i++;
-        });
+        }
+        console.log('check 1');
         res.json({
             items,
             totalPrice
@@ -525,7 +514,7 @@ exports.getPrice = (req, res, next) => {
         const char = medName[0].toLowerCase();
         const Medicine = require(`../models/medicine_${char}`);
         const med = await Medicine.findOne({ name: medName }).exec().catch(err => next(err));
-        if(!med){
+        if (!med) {
             const err = new Error('invalid medicine name');
             err.status = 401;
             return next(err);
