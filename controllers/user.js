@@ -257,7 +257,6 @@ exports.getCart = (req, res, next) => {
                 price: priceList
             };
             items.push(new_item);
-            console.log('check 2');
             if (priceList._1mg !== -1) {
                 totalPrice._1mg += item.quantity * priceList._1mg;
             }
@@ -268,7 +267,6 @@ exports.getCart = (req, res, next) => {
                 totalPrice.netmeds += item.quantity * priceList.netmeds;
             }
         }
-        console.log('check 1');
         res.json({
             items,
             totalPrice
