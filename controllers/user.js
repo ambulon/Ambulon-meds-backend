@@ -252,6 +252,7 @@ exports.getCart = (req, res, next) => {
                 netmeds: fetched_med.netmeds
             };
             const new_item = {
+                medicineId: id,
                 name: fetched_med.name,
                 quantity: item.quantity,
                 price: priceList
