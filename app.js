@@ -1,3 +1,5 @@
+const path = require('path');
+
 const express = require('express');
 const toJson = require('body-parser').json;
 const helmet = require('helmet');
@@ -14,6 +16,8 @@ const app = express();
 app.use(helmet());
 
 app.use(toJson());
+
+app.use(express.static(path.join(__dirname, 'assets')));
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -42,7 +46,8 @@ app.use((req, res, next) => {
 mongoose
     .connect(mongoURI, {
         useNewUrlParser: true,
-        useUnifiedTopology: true
+        useUnifiedTopology: true,
+        useFindAndModify: false
     })
     .then(() => {
         app.listen(port);

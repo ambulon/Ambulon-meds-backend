@@ -12,7 +12,7 @@ router.post('/add-to-search',
         .matches(/^[a-z0-9 ]+$/i)
         .withMessage('invalid search query')
         .custom(value => {
-            if (value === '') {
+            if (!value || value === '') {
                 throw new Error('search query required');
             }
             return true;
@@ -25,7 +25,7 @@ router.post('/add-to-wishlist',
         .isAlphanumeric()
         .withMessage('invalid medicine id')
         .custom(value => {
-            if (value === '') {
+            if (!value || value === '') {
                 throw new Error('medicine id required');
             }
             return true;
@@ -38,7 +38,7 @@ router.post('/remove-from-wishlist',
         .matches(/^[a-z0-9 ]+$/i)
         .withMessage('invalid medicine id')
         .custom(value => {
-            if (value === '') {
+            if (!value || value === '') {
                 throw new Error('medicine id required');
             }
             return true;
@@ -56,7 +56,7 @@ router.post('/add-to-cart',
             .matches(/^[a-z0-9 ]+$/i)
             .withMessage('invalid medicine id')
             .custom(value => {
-                if (value === '') {
+                if (!value || value === '') {
                     throw new Error('medicine id required');
                 }
                 return true;
@@ -66,7 +66,7 @@ router.post('/add-to-cart',
                 if (parseInt(value) === NaN || value < 1) {
                     throw new Error('invalid quantity');
                 }
-                if (value === '') {
+                if (!value || value === '') {
                     throw new Error('quantity required');
                 }
                 return true;
@@ -75,7 +75,7 @@ router.post('/add-to-cart',
             .isAlpha()
             .withMessage('invalid char value')
             .custom(value => {
-                if (value === '') {
+                if (!value || value === '') {
                     throw new Error('char value required');
                 }
                 return true;
@@ -102,7 +102,7 @@ router.post('/clear-cart', userController.postClearCart);
 router.post('/sync-cart',
     check('cart')
         .custom(value => {
-            if (value === '') {
+            if (!value || value === '') {
                 throw new Error('cart object required');
             }
             return true;
@@ -111,5 +111,18 @@ router.post('/sync-cart',
 );
 
 router.get('/get-price/:medName', userController.getPrice);
+
+router.get('/get-toppicks', userController.getTopPicks);
+
+router.post('/add-med',
+    check('name')
+        .custom(value => {
+            if (!value || value === '') {
+                throw new Error('medicine name required');
+            }
+            return true;
+        }),
+    userController.postNewMed
+);
 
 module.exports = router;

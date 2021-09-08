@@ -4,6 +4,8 @@ const { validationResult } = require('express-validator');
 const User = require('../models/user');
 const Token = require('../models/token');
 const CartItem = require('../models/cart-item');
+const TopPicks = require('../models/topPicks');
+const NewMed = require('../models/newMed');
 
 const { tokenSecret } = require('../util/config');
 
@@ -521,6 +523,97 @@ exports.getPrice = (req, res, next) => {
         res.json({
             med,
             char
+        });
+    });
+};
+
+exports.getTopPicks = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const index = user.topPicksIndex;
+        const topPicks = await TopPicks.find().exec().catch(err => next(err));
+        const temp = topPicks.slice(index, index + 4);
+        if (index < 16)
+            await User.findByIdAndUpdate(userId, { topPicksIndex: index + 4 }).catch(err => next(err));
+        else
+            await User.findByIdAndUpdate(userId, { topPicksIndex: 0 }).catch(err => next(err));
+        res.json({
+            topPicks: temp
+        });
+    });
+};
+
+exports.postNewMed = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const medName = req.body.name;
+        const temp = await NewMed.findOne({ name: medName }).exec().catch(err => next(err));
+        if (temp) {
+            const err = new Error('medicine already marked to be added');
+            err.status = 422;
+            return next(err);
+        }
+        const newMed = new NewMed({
+            name: medName,
+            userId
+        });
+        await newMed.save().catch(err => next(err));
+        res.json({
+            message: 'added to database'
         });
     });
 };

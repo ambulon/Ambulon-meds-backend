@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
     age: { type: Number, required: true },
     email: { type: String, required: true, unique: true },
     search_history: [String],
-    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' }]
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' }],
+    topPicksIndex: { type: Number, required: true, default: 0 }
 });
 
 module.exports = mongoose.model('User', userSchema);
