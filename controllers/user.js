@@ -561,8 +561,16 @@ exports.getTopPicks = (req, res, next) => {
             await User.findByIdAndUpdate(userId, { topPicksIndex: index + 4 }).catch(err => next(err));
         else
             await User.findByIdAndUpdate(userId, { topPicksIndex: 0 }).catch(err => next(err));
+        const result = [];
+        for (let i = 0; i < 4; i++) {
+            const char = temp[i].char;
+            const medId = temp[i].medId;
+            const Medicine = require(`../models/medicine_${char}`);
+            const med = await Medicine.findById(medId).exec().catch(err => next(err));
+            result.push(med);
+        }
         res.json({
-            topPicks: temp
+            topPicks: result
         });
     });
 };

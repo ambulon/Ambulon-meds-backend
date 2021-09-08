@@ -1,5 +1,3 @@
-const path = require('path');
-
 const express = require('express');
 const toJson = require('body-parser').json;
 const helmet = require('helmet');
@@ -17,7 +15,7 @@ app.use(helmet());
 
 app.use(toJson());
 
-app.use(express.static(path.join(__dirname, 'assets')));
+app.use(express.static('public'));
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
