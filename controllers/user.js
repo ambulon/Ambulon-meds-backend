@@ -6,6 +6,7 @@ const Token = require('../models/token');
 const CartItem = require('../models/cart-item');
 const TopPicks = require('../models/topPicks');
 const NewMed = require('../models/newMed');
+const Coupons = require('../models/coupons');
 
 const { tokenSecret } = require('../util/config');
 
@@ -622,6 +623,51 @@ exports.postNewMed = (req, res, next) => {
         await newMed.save().catch(err => next(err));
         res.json({
             message: 'added to database'
+        });
+    });
+};
+
+exports.getCoupons = (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        const err = new Error('token not provided');
+        err.status = 401;
+        return next(err);
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const err = new Error(errors.array()[0].msg);
+        err.status = 422;
+        return next(err);
+    }
+    token = token.slice(7, token.length);
+    jwt.verify(token, tokenSecret, async (err, decoded) => {
+        if (err) {
+            const error = new Error(err);
+            error.status = 401;
+            return next(error);
+        }
+        const userId = decoded.userId;
+        const fetched_token = await Token.findOne({ token }).exec().catch(err => next(err));
+        if (!fetched_token) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const user = await User.findById(userId).exec().catch(err => next(err));
+        if (!user) {
+            const err = new Error('invalid token');
+            err.status = 401;
+            return next(err);
+        }
+        const coupons = await Coupons.find().exec().catch(err => next(err));
+        const _1mg = coupons.filter(x => x.site == '1mg');
+        const apollo = coupons.filter(x => x.site == 'apollo');
+        const netmeds = coupons.filter(x => x.site == 'netmeds');
+        res.json({
+            _1mg,
+            apollo,
+            netmeds
         });
     });
 };

@@ -89,7 +89,7 @@ router.post('/remove-from-cart',
         .matches(/^[a-z0-9 ]+$/i)
         .withMessage('invalid medicine id')
         .custom(value => {
-            if (value === '') {
+            if (!value || value === '') {
                 throw new Error('medicine id required');
             }
             return true;
@@ -124,5 +124,7 @@ router.post('/add-med',
         }),
     userController.postNewMed
 );
+
+router.get('/get-coupons', userController.getCoupons);
 
 module.exports = router;
